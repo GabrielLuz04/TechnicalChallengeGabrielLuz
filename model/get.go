@@ -5,26 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"std/db"
 	"std/entities"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-func GetCryptos(context *gin.Context) {
-	context.IndentedJSON(http.StatusOK, entities.Cryptos)
-}
-
-func GetCryptoById(id string) (*entities.Crypto, error) {
-	for i, t := range entities.Cryptos {
-		if t.Id == id {
-			return &entities.Cryptos[i], nil
-		}
-	}
-
-	return nil, errors.New("crypto not found")
-}
 
 func GetCryptosByCMC(context *gin.Context) {
 
@@ -60,19 +49,122 @@ func GetCryptosByCMC(context *gin.Context) {
 			fmt.Println("[Main] Erro ao fazer o marshal do GET da página 1", err.Error())
 		}
 
+		entities.CryptosCMC = post
+
 		context.IndentedJSON(http.StatusOK, post)
+
+		fmt.Println(len(entities.CryptosCMC.Data))
+
+		// controller.Clean(context)
+		// controller.Create(context)
+
 	}
 }
 
-func GetCryptosCMCbyID(id int) (*entities.CryptoRequest, error) {
+func GetOne(id string) (crypto *entities.Crypto, err error) {
 
-	var CryptosCMC = entities.CryptoRequest{}
+	// conn, err := db.OpenConn()
+	if err != nil {
+		return
+	}
 
-	for index, result := range CryptosCMC.Data {
-		if result.ID == id {
-			return CryptosCMC, nil
+	intId, err := strconv.Atoi(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, result := range entities.CryptosCMC.Data {
+		// fmt.Println(result)
+		if result.ID == intId {
+			return &result, nil
 		}
 	}
 
 	return nil, errors.New("crypto not found")
+}
+
+func GetOneDb(id string) (crypto *entities.Crypto, err error) {
+	conn, err := db.OpenConn()
+	intId, err := strconv.Atoi(id)
+
+	type cryptoUpdate struct {
+		Upvotes int    `json:"upvotes"`
+		ID      int    `json:"id"`
+		Name    string `json:"name"`
+		Symbol  string `json:"symbol"`
+		Slug    string `json:"slug"`
+		Quote   struct {
+			USD struct {
+				Price float64 `json:"price"`
+			} `json:"USD"`
+		} `json:"quote"`
+	}
+
+	cryptoSelected := cryptoUpdate{}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	resposta, err := conn.Query(`SELECT * FROM cryptos where id=$1;`, intId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for resposta.Next() {
+		err = resposta.Scan(&cryptoSelected.Upvotes, &cryptoSelected.ID, &cryptoSelected.Name, &cryptoSelected.Symbol, &cryptoSelected.Slug, &cryptoSelected.Quote.USD.Price)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	crypto = (*entities.Crypto)(&cryptoSelected)
+
+	return crypto, nil
+
+}
+
+func GetAllInDB() (cryptos []entities.Crypto, err error) {
+	conn, err := db.OpenConn()
+
+	crypto := entities.Crypto{}
+
+	if err != nil {
+		return
+	}
+
+	log.Printf("ERRO LINHA 95")
+
+	defer conn.Close()
+
+	rows, err := conn.Query(`SELECT * FROM cryptos;`)
+
+	if err != nil {
+		return
+	}
+
+	log.Printf("ERRO LINHA 102")
+
+	for rows.Next() {
+
+		cryptos = append(cryptos, crypto)
+
+		err = rows.Scan(&crypto.Upvotes, &crypto.ID, &crypto.Name, &crypto.Symbol, &crypto.Slug, &crypto.Quote.USD.Price)
+
+		if err != nil {
+			continue
+		}
+
+		log.Printf("ID: %v, Name: %v", crypto.ID, crypto.Name)
+
+	}
+
+	log.Print(cryptos)
+	return cryptos, nil
+
 }

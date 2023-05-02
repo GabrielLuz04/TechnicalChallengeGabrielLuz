@@ -1,20 +1,23 @@
-package model
+package controller
 
 import (
 	"net/http"
+	"std/model"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-func ToggleCryptoUpvote(context *gin.Context) {
+func ToggleCryptoUpvoteCMC(context *gin.Context) {
 	id := context.Param("id")
-	crypto, err := GetCryptoById(id)
+	crypto, err := model.GetOne(id)
 
 	if err != nil {
 		context.IndentedJSON(http.StatusNotFound, gin.H{"message": "crypto not found"})
 	}
 
-	crypto.Upvotes = crypto.Upvotes + 1
+	intId, _ := strconv.Atoi(id)
+	model.Update(int64(intId), crypto)
 
 	context.IndentedJSON(http.StatusOK, crypto)
 
