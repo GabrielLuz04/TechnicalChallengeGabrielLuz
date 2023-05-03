@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http/httptest"
 
 	//"std/configs"
 	"std/controller"
@@ -22,10 +21,6 @@ func main() {
 		panic(err)
 	}
 
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	model.GetCryptosByCMC(c)
 	// fmt.Println(model.GetCryptosCMCbyID("1"))
 
 	router := gin.Default()

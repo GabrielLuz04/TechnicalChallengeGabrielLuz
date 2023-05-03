@@ -18,7 +18,6 @@ func InsertCryptosInDB(*entities.Crypto) (int64, error) {
 
 	defer conn.Close()
 
-	fmt.Println("TAMANHO DO PA E BOLA", len(entities.CryptosCMC.Data))
 	SizeOfCryptosSlice := len(entities.CryptosCMC.Data)
 
 	for index, result := range entities.CryptosCMC.Data {
